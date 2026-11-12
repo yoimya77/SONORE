@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SONORE — 設定</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <!-- 大きな点の表示板。左に名前、右にバージョンを出す -->
+    <h1 class="logo"><canvas id="logo" class="matrix" role="img" aria-label="SONORE"></canvas></h1>
+
+    <!-- 細長い表示板。文字が右から左に流れる。説明は、カーソルを重ねたときの吹き出しで出す -->
+    <div id="setupBanner" class="banner tip-host tip-down" hidden>
+      <div class="ticker slow" role="note" tabindex="0" aria-label="はじめに、遮断する時間帯を決めて保存してください。" aria-describedby="tipSetup">
+        <p class="ticker-run" aria-hidden="true">はじめに、遮断する時間帯を決めて保存してください。</p>
+      </div>
+      <p id="tipSetup" class="tip" role="tooltip">最初に保存するまでは、時間帯の中でも設定を変更できます。保存したあとは、遮断時間帯のあいだ設定を変更できません。</p>
+    </div>
+
+    <div id="lockBanner" class="banner tip-host tip-down" hidden>
+      <div class="ticker red" role="note" tabindex="0" aria-label="設定は凍結されています" aria-describedby="tipLock">
+        <p class="ticker-run" aria-hidden="true">設定凍結中</p>
+      </div>
+      <p id="tipLock" class="tip" role="tooltip">遮断時間帯のあいだは変更できません。変更するには、ツールバーのアイコンから一時解除を申請してください。</p>
+    </div>
+
+    <form id="form" novalidate>
+      <fieldset id="fields">
+        <section class="sec">
+          <div class="tip-host tip-down">
+            <h2 class="tip-trigger" tabindex="0" aria-describedby="tipSlots">遮断時間帯<i class="tip-mark" aria-hidden="true">?</i></h2>
+            <p id="tipSlots" class="tip" role="tooltip">終了が開始より前なら、翌日まで続きます。開始と終了を同じにすると24時間になります。</p>
+          </div>
+          <div class="sec-body">
+            <div id="slots" class="slots"></div>
+            <button id="addSlot" type="button" class="btn"><span>時間帯を追加</span></button>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="tip-host tip-down">
+            <h2 class="tip-trigger" tabindex="0" aria-describedby="tipExceptions">例外指定サイト<i class="tip-mark" aria-hidden="true">?</i></h2>
+            <p id="tipExceptions" class="tip" role="tooltip">ここに書いたサイトでは、時間帯の中でも映像を遮断しません。1行に1つ書きます。サブドメインにも効きます。</p>
+          </div>
+          <div class="sec-body">
+            <textarea id="exceptions" rows="4" spellcheck="false" aria-label="例外指定サイト" placeholder="meet.google.com&#10;discord.com"></textarea>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="tip-host tip-down">
+            <h2 class="tip-trigger" tabindex="0" aria-describedby="tipUnlock">一時解除<i class="tip-mark" aria-hidden="true">?</i></h2>
+            <p id="tipUnlock" class="tip" role="tooltip">時間帯の中でどうしても見たいときは、承認待ちのあとで、決めた時間だけ映像を表示できます。</p>
+          </div>
+          <div class="sec-body">
+            <label class="field-row">
+              <span class="label">承認までの待ち時間</span>
+              <input id="waitMinutes" class="val" type="number" min="0" max="180" step="1"> 分
+            </label>
+            <label class="field-row">
+              <span class="label">解除できる時間</span>
+              <input id="unlockMinutes" class="val" type="number" min="1" max="480" step="1"> 分
+            </label>
+          </div>
+        </section>
+      </fieldset>
+
+      <div class="actions">
+        <button id="save" type="submit" class="btn fill"><span>設定を保存</span></button>
+        <p id="saveMsg" class="save-msg" role="status"></p>
+      </div>
+    </form>
+
+  </main>
+
+  <template id="slotTemplate">
+    <div class="slot">
+      <div class="slot-head">
+        <input class="start val" type="time" step="60" aria-label="開始">
+        <span>から</span>
+        <input class="end val" type="time" step="60" aria-label="終了">
+        <span>まで</span>
+        <button type="button" class="link-btn remove">削除</button>
+      </div>
+      <div class="days" role="group" aria-label="曜日"></div>
+      <!-- 入力が足りないときだけ、注意を出す -->
+      <p class="slot-warning" hidden></p>
+    </div>
+  </template>
+
+  <script src="common.js"></script>
+  <script src="dots.js"></script>
+  <script src="tips.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>SONORE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="popup" data-mode="showing">
+  <!-- 大きな点の表示板。いまの状態か、残り時間を出す -->
+  <canvas id="matrix" class="matrix" role="img" aria-label="読み込み中"></canvas>
+
+  <main class="pop-body">
+    <!-- 説明は吹き出しにして、文字やボタンにカーソルを重ねたときだけ出す -->
+    <div class="tip-host">
+      <p id="statusLine" class="now"></p>
+      <p id="statusTip" class="tip" role="tooltip" hidden></p>
+    </div>
+
+    <section id="unlock" class="unlock" hidden>
+      <div data-phase="none" class="tip-host tip-narrow">
+        <button id="btnRequest" type="button" class="btn" aria-describedby="noteNone"><span>一時解除を申請</span></button>
+        <p id="noteNone" class="tip" role="tooltip"></p>
+      </div>
+
+      <div data-phase="waiting">
+        <button id="btnCancelWait" type="button" class="btn quiet"><span>キャンセル</span></button>
+      </div>
+
+      <div data-phase="ready" class="row">
+        <button id="btnUnlock" type="button" class="btn"><span id="btnUnlockLabel"></span></button>
+        <button id="btnCancelReady" type="button" class="btn quiet"><span>キャンセル</span></button>
+      </div>
+
+      <div data-phase="unlocked">
+        <button id="btnRelock" type="button" class="btn"><span>遮断を再開</span></button>
+      </div>
+    </section>
+
+    <footer class="pop-foot">
+      <button id="btnOptions" type="button" class="link-btn">設定</button>
+      <button id="btnException" type="button" class="link-btn" hidden></button>
+    </footer>
+  </main>
+
+  <script src="common.js"></script>
+  <script src="dots.js"></script>
+  <script src="tips.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

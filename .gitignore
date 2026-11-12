@@ -1,0 +1,12 @@
+# Chrome で「拡張機能をパッケージ化」すると作られるもの
+# .pem は拡張機能の秘密鍵なので、公開しない
+*.pem
+*.crx
+
+# ストアに出すための zip
+*.zip
+
+# パソコンが作るファイル
+.DS_Store
+Thumbs.db
+desktop.ini

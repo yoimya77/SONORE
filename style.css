@@ -1,0 +1,470 @@
+/* SONORE — 見た目
+   白と黒、それに赤が一つ。赤は、映像が隠れているあいだだけ使います。
+   目立つものは、大きな点の表示板と、設定画面の細長い表示板だけ。ほかは、細い書体・細い線・広い余白にしています。
+   パソコンやブラウザが暗い表示のときは、白と黒が入れかわり、点が光ります。
+   細長い表示板は電光掲示板に見立てて、どちらの表示でも黒い板にし、文字を光らせます。 */
+
+/* 書体は拡張機能の中に入れています（外から読み込まない）。fonts/ を見てください。
+   M PLUS 1 は、1つのファイルに細い字から太い字まで入っています */
+/* DotGothic16 は、細長い表示板の流れる文字だけに使う */
+@font-face {
+  font-family: "DotGothic16";
+  src: url("fonts/DotGothic16.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "M PLUS 1";
+  src: url("fonts/MPLUS1.subset.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+:root {
+  color-scheme: light;
+  --paper: #f3f4f5;   /* 地 */
+  --ink: #101214;     /* 文字・線・光っている点 */
+  --muted: #5c6268;   /* 補足の文字 */
+  --hair: #c5c9cd;    /* 細い線 */
+  --unlit: #dcdfe2;   /* 光っていない点 */
+  --red: #e0002a;     /* 映像が隠れているあいだの点 */
+  --glow: 0;          /* 1 にすると、点がにじんで光る（dots.js が読む） */
+
+  /* 細長い表示板は、電光掲示板のように、明るい表示でも暗い表示でも黒い板にする */
+  --board: #0c0d0e;       /* 板 */
+  --board-dot: #232629;   /* 板の、光っていない点 */
+  --board-ink: #f2f3f4;   /* 板の、光っている文字 */
+  --board-red: #ff2d4f;   /* 板の、赤く光っている文字 */
+  --board-edge: #0c0d0e;  /* 板のふち */
+
+  --f-body: "M PLUS 1", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+}
+
+/* 暗い表示 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #000000;
+    --ink: #f2f3f4;
+    --muted: #9aa0a6;
+    --hair: #33373b;
+    --unlit: #1e2022;
+    --red: #ff2d4f;
+    --glow: 1;
+    /* 地も黒いので、板のふちに細い線を引いて、板の形がわかるようにする */
+    --board: #060707;
+    --board-edge: var(--hair);
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.7;
+  /* 日本語を、ことばの切れ目で折り返す */
+  word-break: auto-phrase;
+}
+
+h1, h2, p { margin: 0; }
+
+button, input, textarea { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* ===== 点の表示板 ===== */
+.matrix {
+  display: block;
+  background: var(--paper);
+}
+
+/* ===== ボタン =====
+   斜めの形は、ボタンだけに使う。中の文字は、逆に傾けてまっすぐに戻す */
+.btn {
+  appearance: none;
+  height: 42px;
+  padding: 0 26px;
+  margin-left: 5px; /* 傾けたぶん、左にはみ出すのを戻す */
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  transform: skewX(-14deg);
+  cursor: pointer;
+}
+.btn span {
+  display: block;
+  transform: skewX(14deg);
+}
+.btn:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.btn.quiet { border-color: var(--hair); }
+.btn.quiet:hover { border-color: var(--muted); }
+.btn.fill {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn.fill:hover { background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.link-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--ink); }
+
+/* ===== 説明の吹き出し =====
+   文字やボタンにカーソルを重ねるか、キーボードでそこに移ると出てきます。外すと消えます。
+   ふつうは右に出ます。.tip-down をつけると下に出ます */
+.tip-host {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-self: start;
+}
+.tip {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  z-index: 10;
+  width: max-content;
+  max-width: 210px;
+  padding: 7px 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.55;
+  letter-spacing: 0;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-4px, -50%);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+}
+/* 吹き出しの三角 */
+.tip::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  margin-top: -5px;
+  border: 5px solid transparent;
+  border-left: 0;
+  border-right: 6px solid var(--ink);
+}
+.tip-host:hover .tip,
+.tip-host:has(:focus-visible) .tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(0, -50%);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s;
+}
+/* Esc で閉じたときは、カーソルを外すまで出さない */
+.tip-host.tip-closed .tip {
+  opacity: 0;
+  visibility: hidden;
+}
+/* ボタンの右は場所がせまいので、吹き出しを細くする */
+.tip-narrow .tip { max-width: 150px; }
+
+/* 下に出す吹き出し */
+.tip-down .tip {
+  left: 0;
+  top: calc(100% + 10px);
+  max-width: min(27em, calc(100vw - 48px));
+  transform: translateY(-4px);
+}
+.tip-down .tip::before {
+  left: 14px;
+  top: -6px;
+  margin-top: 0;
+  border: 5px solid transparent;
+  border-top: 0;
+  border-bottom: 6px solid var(--ink);
+}
+.tip-down:hover .tip,
+.tip-down:has(:focus-visible) .tip { transform: none; }
+
+/* ===== ポップアップ ===== */
+body.popup { width: 352px; }
+
+.popup .matrix { border-bottom: 1px solid var(--hair); }
+
+.pop-body {
+  padding: 26px 20px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.now {
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+/* 吹き出しがある文字には、点線の下線をつける */
+.now.has-tip {
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 5px;
+  cursor: help;
+}
+
+.unlock [data-phase] { display: flex; }
+.row { gap: 12px; }
+
+.pop-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+/* ===== 設定画面 ===== */
+.page {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 56px 24px 72px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 36px;
+}
+
+.logo { overflow: hidden; }
+/* せまい窓では、表示板を縮める */
+.logo canvas {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* ===== 細長い表示板 =====
+   駅の発車標のように、文字が右から左に流れる。
+   文字は右はしの外から入ってきて、左はしの外へ全部出てから、また右から入ってくる。
+   背景は電光掲示板のように、黒い板に光っていない点を並べ、文字は光らせる */
+.banner {
+  display: block;
+  justify-self: stretch;
+}
+.ticker {
+  overflow: hidden;
+  /* 上下のすき間と文字の高さを足して、点の間隔（4px）でちょうど割り切れる高さにする */
+  padding: 10px 0;
+  border: 1px solid var(--board-edge);
+  background-color: var(--board);
+  /* 光っていない点。板の大きさに合わせて点の間をすこし広げ、はしで点が切れないようにする */
+  background-image: radial-gradient(circle, var(--board-dot) 1.15px, transparent 1.6px);
+  background-size: 4px 4px;
+  background-repeat: space;
+  color: var(--board-ink);
+  text-shadow: 0 0 8px color-mix(in srgb, currentColor 60%, transparent);
+  font-family: "DotGothic16", var(--f-body);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  cursor: help;
+}
+.ticker.red { color: var(--board-red); }
+.ticker-run {
+  display: inline-block;
+  padding-left: 100%; /* 枠の幅ぶん右にずらして、外から入ってくるようにする */
+  animation: ticker 12s linear infinite;
+}
+.ticker.slow .ticker-run { animation-duration: 19s; }
+@keyframes ticker {
+  to { transform: translateX(-100%); }
+}
+#form {
+  display: grid;
+  gap: 36px;
+}
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  gap: 36px;
+}
+/* 凍結中は入力欄だけを薄くする。題名と説明の吹き出しは、そのまま読めるようにする */
+fieldset:disabled .sec-body { opacity: 0.45; }
+
+.sec {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding-top: 28px;
+  border-top: 1px solid var(--hair);
+}
+.sec h2 {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+}
+.sec-body {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+}
+
+.tip-trigger { cursor: help; }
+.tip-mark {
+  margin-left: 8px;
+  font-style: normal;
+  font-weight: 300;
+  color: var(--muted);
+}
+
+.slots {
+  display: grid;
+  gap: 28px;
+  width: 100%;
+}
+.slot {
+  display: grid;
+  gap: 16px;
+}
+.slot-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.slot-head .remove { margin-left: auto; }
+.slot-warning {
+  font-size: 13px;
+  color: var(--red);
+}
+
+/* 自分で決める数字は、細くて大きい字にする */
+.val {
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  border-radius: 0;
+  padding: 0 0 4px;
+  background: transparent;
+  font-size: 34px;
+  font-weight: 200;
+  line-height: 1;
+  color: var(--ink);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+input[type="number"].val { width: 2.4em; }
+/* 時計のしるしは、数字より小さくする */
+input[type="time"].val::-webkit-calendar-picker-indicator {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: 6px;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 12px 14px;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+/* 曜日 */
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.day { position: relative; }
+.day input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.day span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--hair);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--muted);
+  user-select: none;
+}
+.day input:checked + span {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 500;
+}
+.day input:focus-visible + span {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.day input:disabled { cursor: not-allowed; }
+
+.field-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.field-row .label { min-width: 11em; }
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding-left: 224px; /* 入力欄の左はしにそろえる */
+}
+.save-msg { font-size: 13px; }
+.save-msg.error { color: var(--red); }
+
+/* せまい窓では、題名を入力欄の上に置く */
+@media (max-width: 640px) {
+  .sec { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .actions { padding-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 文字を流さず、左はしに止める */
+  .ticker-run { animation: none; padding-left: 0; }
+  .tip,
+  .tip-host:hover .tip,
+  .tip-host:has(:focus-visible) .tip { transition: none; }
+}
