@@ -1,5 +1,7 @@
 # SONORE
 
+https://github.com/user-attachments/assets/f6bfa1e2-0907-415f-b6f0-7b173cff73ff
+
 決めた時間帯だけ、どのサイトでも動画の映像を隠して、音だけにする Chrome 拡張機能です。
 
 ## できること
